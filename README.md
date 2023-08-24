@@ -68,7 +68,6 @@
 트러블 슈팅 내역은 [이 블로그](velog.io/@ofgongmu)에 작성합니다. 
 
 ## 기술 스택
-
 ![Java](https://img.shields.io/badge/java-%23ED8B00.svg?style=for-the-badge&logo=openjdk&logoColor=white)
 <img src="https://img.shields.io/badge/springboot-6DB33F?style=for-the-badge&logo=springboot&logoColor=white">
 ![MySQL](https://img.shields.io/badge/mysql-%2300f.svg?style=for-the-badge&logo=mysql&logoColor=white)
