@@ -3,13 +3,15 @@ package com.example.demo.model;
 import com.example.demo.entity.Account;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
 
+@Getter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
 public class SignUpResponseDto {
-  String email;
+  private String email;
 
   public static SignUpResponseDto fromEntity(Account account) {
     return SignUpResponseDto.builder()

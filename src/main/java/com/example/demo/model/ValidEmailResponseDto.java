@@ -2,10 +2,12 @@ package com.example.demo.model;
 
 import com.example.demo.entity.Account;
 import lombok.Builder;
+import lombok.Getter;
 
+@Getter
 @Builder
 public class ValidEmailResponseDto {
-  String email;
+  private String email;
 
   public static ValidEmailResponseDto fromEntity(Account account) {
     return ValidEmailResponseDto.builder()

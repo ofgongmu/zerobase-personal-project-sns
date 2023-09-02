@@ -2,13 +2,15 @@ package com.example.demo.model;
 
 import com.example.demo.entity.Account;
 import lombok.Builder;
+import lombok.Getter;
 
+@Getter
 @Builder
 public class AccountSetupResponseDto {
-  String id;
-  String nickname;
-  String bio;
-  String imageUrl;
+  private String id;
+  private String nickname;
+  private String bio;
+  private String imageUrl;
 
   public static AccountSetupResponseDto fromEntity(Account account) {
     return AccountSetupResponseDto.builder()

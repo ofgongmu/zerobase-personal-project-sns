@@ -10,6 +10,7 @@ import com.example.demo.model.SignUpRequestDto;
 import com.example.demo.model.SignUpResponseDto;
 import com.example.demo.model.ValidEmailRequestDto;
 import com.example.demo.model.ValidEmailResponseDto;
+import com.example.demo.redis.DistributedLock;
 import com.example.demo.repository.AccountRepository;
 import com.example.demo.util.PasswordUtil;
 import lombok.RequiredArgsConstructor;
@@ -25,8 +26,7 @@ public class AccountService {
 
     checkIfUnregisteredEmail(request.getEmail());
 
-    String authCode = mailComponent.createCode();
-    mailComponent.sendEmail(request.getEmail(), authCode);
+    String authCode = mailComponent.sendEmailWithCode(request.getEmail());
 
     return SignUpResponseDto.fromEntity(accountRepository.save(Account.builder()
         .email(request.getEmail())
@@ -47,7 +47,8 @@ public class AccountService {
         .isActivated(true).build()));
   }
 
-  public AccountSetupResponseDto accountSetup(AccountSetupRequestDto request) {
+  @DistributedLock(key = "#key")
+  public AccountSetupResponseDto accountSetup(final String key, AccountSetupRequestDto request) {
 
     Account account = accountRepository.findByEmail(request.getEmail())
         .orElseThrow(() -> new CustomException(ErrorCode.UNREGISTERED_EMAIL));
@@ -63,8 +64,6 @@ public class AccountService {
   }
 
 
-
-
   private void checkIfUnregisteredEmail(String email) {
     if (accountRepository.existsByEmail(email)) {
       throw new CustomException(ErrorCode.ALREADY_REGISTERED_EMAIL);
@@ -78,10 +77,11 @@ public class AccountService {
   }
 
   private void checkIfActivatedAccount(Account account) {
-    if (!account.isActivated()) {
+    if (!account.getIsActivated()) {
       throw new CustomException(ErrorCode.INACTIVATED_ACCOUNT);
     }
   }
+
 
   private void checkIfUniqueId(String id) {
     if (accountRepository.existsById(id)) {

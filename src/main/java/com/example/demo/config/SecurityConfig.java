@@ -17,7 +17,8 @@ public class SecurityConfig {
         .sessionManagement((sessionManagement) -> sessionManagement.sessionCreationPolicy(
             SessionCreationPolicy.STATELESS))
         .authorizeHttpRequests((authorizeHttpRequests) -> authorizeHttpRequests
-            .requestMatchers("/account/signup").permitAll()
+            .requestMatchers("/account/signup", "/account/email-validation", "/account/set-account").permitAll()
+            .anyRequest().authenticated()
         );
     return http.build();
   }
