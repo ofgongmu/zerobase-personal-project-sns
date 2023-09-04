@@ -12,5 +12,4 @@ public class AccountSetupRequestDto {
   @Size(min = 1, max = 20, message = "닉네임은 1자 이상 20자 이하여야 합니다.")
   private String nickname;
   private String bio;
-  private String imageUrl;
 }

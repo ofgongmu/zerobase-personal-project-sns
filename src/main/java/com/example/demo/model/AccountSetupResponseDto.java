@@ -10,14 +10,12 @@ public class AccountSetupResponseDto {
   private String id;
   private String nickname;
   private String bio;
-  private String imageUrl;
 
   public static AccountSetupResponseDto fromEntity(Account account) {
     return AccountSetupResponseDto.builder()
         .id(account.getId())
         .nickname(account.getNickname())
         .bio(account.getBio())
-        .imageUrl(account.getImageUrl())
         .build();
   }
 }

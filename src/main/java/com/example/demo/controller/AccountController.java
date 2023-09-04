@@ -10,7 +10,9 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
 @RestController
 @RequiredArgsConstructor
@@ -29,7 +31,8 @@ public class AccountController {
   }
 
   @PostMapping("/set-account")
-  public ResponseEntity<?> accountSetup(@RequestBody @Valid AccountSetupRequestDto request) {
-    return ResponseEntity.ok(accountService.accountSetup(request.getId(), request));
+  public ResponseEntity<?> accountSetup(@RequestPart(value = "request") @Valid AccountSetupRequestDto request,
+                                        @RequestPart(value = "image", required = false) MultipartFile image) {
+    return ResponseEntity.ok(accountService.accountSetup(request.getId(), request, image));
   }
 }
