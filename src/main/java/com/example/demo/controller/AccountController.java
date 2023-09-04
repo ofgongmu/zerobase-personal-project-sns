@@ -1,12 +1,14 @@
 package com.example.demo.controller;
 
 import com.example.demo.model.AccountSetupRequestDto;
+import com.example.demo.model.LogInRequestDto;
 import com.example.demo.model.SignUpRequestDto;
 import com.example.demo.model.ValidEmailRequestDto;
 import com.example.demo.service.AccountService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -34,5 +36,10 @@ public class AccountController {
   public ResponseEntity<?> accountSetup(@RequestPart(value = "request") @Valid AccountSetupRequestDto request,
                                         @RequestPart(value = "image", required = false) MultipartFile image) {
     return ResponseEntity.ok(accountService.accountSetup(request.getId(), request, image));
+  }
+
+  @GetMapping("/login")
+  public ResponseEntity<?> login(@RequestBody LogInRequestDto request) {
+    return ResponseEntity.ok(accountService.login(request));
   }
 }
