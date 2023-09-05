@@ -29,6 +29,7 @@ public class DistributedLockAop {
     String key = REDISSON_LOCK_PREFIX + CustomSpringELParser.getDynamicValue(signature.getParameterNames(), joinPoint.getArgs(), distributedLock.key());
     RLock rLock = redissonClient.getLock(key);
 
+    //TODO: Try-with-resources 로 변경
     try {
       boolean available = rLock.tryLock(distributedLock.waitTime(), distributedLock.leaseTime(), distributedLock.timeUnit());
       if (!available) {

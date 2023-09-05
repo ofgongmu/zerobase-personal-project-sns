@@ -7,18 +7,12 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import java.time.LocalDateTime;
-import java.util.Collection;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
-import org.springframework.security.core.GrantedAuthority;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
-import org.springframework.security.core.userdetails.UserDetails;
 
 @Entity
 @EntityListeners(AuditingEntityListener.class)
@@ -26,7 +20,7 @@ import org.springframework.security.core.userdetails.UserDetails;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder(toBuilder = true)
-public class Account implements UserDetails {
+public class Account {
   @Id
   @GeneratedValue(strategy = GenerationType.IDENTITY)
   private Long accountNum;
@@ -60,34 +54,4 @@ public class Account implements UserDetails {
   private LocalDateTime createdDate;
 
   private LocalDateTime deactivatedDate;
-
-  @Override
-  public Collection<? extends GrantedAuthority> getAuthorities() {
-    return Stream.of(this.role).map(SimpleGrantedAuthority::new).collect(Collectors.toList());
-  }
-
-  @Override
-  public String getUsername() {
-    return id;
-  }
-
-  @Override
-  public boolean isAccountNonExpired() {
-    return true;
-  }
-
-  @Override
-  public boolean isAccountNonLocked() {
-    return true;
-  }
-
-  @Override
-  public boolean isCredentialsNonExpired() {
-    return true;
-  }
-
-  @Override
-  public boolean isEnabled() {
-    return true;
-  }
 }

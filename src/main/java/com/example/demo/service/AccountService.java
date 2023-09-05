@@ -15,6 +15,7 @@ import com.example.demo.model.ValidEmailRequestDto;
 import com.example.demo.model.ValidEmailResponseDto;
 import com.example.demo.redis.DistributedLock;
 import com.example.demo.repository.AccountRepository;
+import com.example.demo.security.AccountUserDetails;
 import com.example.demo.security.TokenProvider;
 import com.example.demo.util.PasswordUtil;
 import lombok.RequiredArgsConstructor;
@@ -36,8 +37,9 @@ public class AccountService implements UserDetailsService {
 
   @Override
   public UserDetails loadUserByUsername(String id) throws UsernameNotFoundException {
-    return accountRepository.findById(id)
+    Account account = accountRepository.findById(id)
         .orElseThrow(() -> new CustomException(ErrorCode.ACCOUNT_DOES_NOT_EXIST));
+    return new AccountUserDetails(account);
   }
   public SignUpResponseDto signup(SignUpRequestDto request) {
 
@@ -59,7 +61,6 @@ public class AccountService implements UserDetailsService {
     Account account = accountRepository.findByEmail(request.getEmail())
         .orElseThrow(() -> new CustomException(ErrorCode.UNREGISTERED_EMAIL));
     checkCorrectAuthCode(account, request.getAuthCode());
-
 
     return ValidEmailResponseDto.fromEntity(accountRepository.save(account.toBuilder()
         .isActivated(true).build()));
@@ -127,7 +128,4 @@ public class AccountService implements UserDetailsService {
           .build());
     }
   }
-
-
-
 }
