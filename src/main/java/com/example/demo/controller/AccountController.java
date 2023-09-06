@@ -1,5 +1,6 @@
 package com.example.demo.controller;
 
+import com.example.demo.model.AccountSearchRequestDto;
 import com.example.demo.model.AccountSetupRequestDto;
 import com.example.demo.model.LogInRequestDto;
 import com.example.demo.model.SignUpRequestDto;
@@ -8,8 +9,12 @@ import com.example.demo.service.AccountService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestPart;
@@ -41,5 +46,50 @@ public class AccountController {
   @GetMapping("/login")
   public ResponseEntity<?> login(@RequestBody LogInRequestDto request) {
     return ResponseEntity.ok(accountService.login(request));
+  }
+
+  @PutMapping("/protected")
+  public ResponseEntity<?> changeAccountProtection(@AuthenticationPrincipal String id) {
+    return ResponseEntity.ok(accountService.changeAccountProtection(id));
+  }
+
+  @GetMapping("/search")
+  public ResponseEntity<?> searchAccount(@RequestBody AccountSearchRequestDto request) {
+    return ResponseEntity.ok(accountService.searchAccount(request));
+  }
+
+  @GetMapping("/{targetId}")
+  public ResponseEntity<?> seeAccount(@AuthenticationPrincipal String id, @PathVariable String targetId) {
+    return ResponseEntity.ok(accountService.seeAccount(id, targetId));
+  }
+
+  @PostMapping("/{targetId}")
+  public ResponseEntity<?> follow(@AuthenticationPrincipal String id, @PathVariable String targetId) {
+    return ResponseEntity.ok(accountService.follow(id, targetId));
+  }
+
+  @DeleteMapping("/{targetId}")
+  public void unfollow(@AuthenticationPrincipal String id, @PathVariable String targetId) {
+    accountService.unfollow(id, targetId);
+  }
+
+  @GetMapping("/pending")
+  public ResponseEntity<?> seePendingList(@AuthenticationPrincipal String id) {
+    return ResponseEntity.ok(accountService.seePendingList(id));
+  }
+
+  @PutMapping("/pending/{targetId}")
+  public ResponseEntity<?> acceptFollow(@AuthenticationPrincipal String id, @PathVariable String targetId) {
+    return ResponseEntity.ok(accountService.acceptFollow(id, targetId));
+  }
+
+  @GetMapping("/following")
+  public ResponseEntity<?> seeFollowingList(@AuthenticationPrincipal String id) {
+    return ResponseEntity.ok(accountService.seeFollowingList(id));
+  }
+
+  @GetMapping("/followers")
+  public ResponseEntity<?> seeFollowersList(@AuthenticationPrincipal String id) {
+    return ResponseEntity.ok(accountService.seeFollowersList(id));
   }
 }
