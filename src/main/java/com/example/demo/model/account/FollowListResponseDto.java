@@ -1,8 +1,8 @@
-package com.example.demo.model;
+package com.example.demo.model.account;
 
 import com.example.demo.entity.Follow;
-import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 import lombok.Builder;
 import lombok.Getter;
 
@@ -12,20 +12,16 @@ public class FollowListResponseDto {
   List<String> result;
 
   public static FollowListResponseDto followersFromEntities(List<Follow> followList) {
-    List<String> result = new ArrayList<>();
-    for(Follow follow: followList) {
-      result.add(follow.getFollowing().getId());
-    }
+    List<String> result =
+        followList.stream().map(f -> f.getFollowing().getId()).collect(Collectors.toList());
     return FollowListResponseDto.builder()
         .result(result)
         .build();
   }
 
   public static FollowListResponseDto followingFromEntities(List<Follow> followList) {
-    List<String> result = new ArrayList<>();
-    for(Follow follow: followList) {
-      result.add(follow.getFollowed().getId());
-    }
+    List<String> result =
+        followList.stream().map(f -> f.getFollowed().getId()).collect(Collectors.toList());
     return FollowListResponseDto.builder()
         .result(result)
         .build();

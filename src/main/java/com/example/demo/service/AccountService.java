@@ -7,21 +7,21 @@ import com.example.demo.entity.Account;
 import com.example.demo.entity.Follow;
 import com.example.demo.exception.CustomException;
 import com.example.demo.exception.ErrorCode;
-import com.example.demo.model.AccountProtectionResponseDto;
-import com.example.demo.model.AccountSearchRequestDto;
-import com.example.demo.model.AccountSearchResponseDto;
-import com.example.demo.model.AccountSetupRequestDto;
-import com.example.demo.model.AccountSetupResponseDto;
-import com.example.demo.model.FollowListResponseDto;
-import com.example.demo.model.FollowResponseDto;
-import com.example.demo.model.LogInRequestDto;
-import com.example.demo.model.LogInResponseDto;
-import com.example.demo.model.PendingListResponseDto;
-import com.example.demo.model.SeeAccountResponseDto;
-import com.example.demo.model.SignUpRequestDto;
-import com.example.demo.model.SignUpResponseDto;
-import com.example.demo.model.ValidEmailRequestDto;
-import com.example.demo.model.ValidEmailResponseDto;
+import com.example.demo.model.account.AccountProtectionResponseDto;
+import com.example.demo.model.account.AccountSearchRequestDto;
+import com.example.demo.model.account.AccountSearchResponseDto;
+import com.example.demo.model.account.AccountSetupRequestDto;
+import com.example.demo.model.account.AccountSetupResponseDto;
+import com.example.demo.model.account.FollowListResponseDto;
+import com.example.demo.model.account.FollowResponseDto;
+import com.example.demo.model.account.LogInRequestDto;
+import com.example.demo.model.account.LogInResponseDto;
+import com.example.demo.model.account.PendingListResponseDto;
+import com.example.demo.model.account.SeeAccountResponseDto;
+import com.example.demo.model.account.SignUpRequestDto;
+import com.example.demo.model.account.SignUpResponseDto;
+import com.example.demo.model.account.ValidEmailRequestDto;
+import com.example.demo.model.account.ValidEmailResponseDto;
 import com.example.demo.redis.DistributedLock;
 import com.example.demo.repository.AccountRepository;
 import com.example.demo.repository.FollowRepository;
@@ -146,17 +146,12 @@ public class AccountService implements UserDetailsService {
     Account targetAccount = accountRepository.findById(targetId)
         .orElseThrow(() -> new CustomException(ErrorCode.ACCOUNT_DOES_NOT_EXIST));
 
-    if (targetAccount.getIsProtected()) {
-      return FollowResponseDto.fromEntity(followRepository.save(Follow.builder()
-          .following(account)
-          .followed(targetAccount)
-          .state(FollowState.PENDING)
-          .build()));
-    }
+    final FollowState state = targetAccount.getIsProtected() ? FollowState.PENDING : FollowState.ACCEPTED;
+
     return FollowResponseDto.fromEntity(followRepository.save(Follow.builder()
         .following(account)
         .followed(targetAccount)
-        .state(FollowState.ACCEPTED)
+        .state(state)
         .build()));
   }
 

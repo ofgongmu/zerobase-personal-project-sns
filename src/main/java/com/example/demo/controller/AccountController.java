@@ -1,10 +1,10 @@
 package com.example.demo.controller;
 
-import com.example.demo.model.AccountSearchRequestDto;
-import com.example.demo.model.AccountSetupRequestDto;
-import com.example.demo.model.LogInRequestDto;
-import com.example.demo.model.SignUpRequestDto;
-import com.example.demo.model.ValidEmailRequestDto;
+import com.example.demo.model.account.AccountSearchRequestDto;
+import com.example.demo.model.account.AccountSetupRequestDto;
+import com.example.demo.model.account.LogInRequestDto;
+import com.example.demo.model.account.SignUpRequestDto;
+import com.example.demo.model.account.ValidEmailRequestDto;
 import com.example.demo.service.AccountService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;

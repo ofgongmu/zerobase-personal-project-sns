@@ -1,4 +1,4 @@
-package com.example.demo.model;
+package com.example.demo.model.account;
 
 import jakarta.validation.constraints.Size;
 import lombok.Builder;

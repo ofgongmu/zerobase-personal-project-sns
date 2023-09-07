@@ -1,4 +1,4 @@
-package com.example.demo.model;
+package com.example.demo.model.account;
 
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
