@@ -16,7 +16,7 @@ import org.springframework.web.multipart.MultipartFile;
 @RequiredArgsConstructor
 public class S3Component {
   private final AmazonS3 s3Client;
-  private final String bucketName = "personal-project-sns-images";
+  private static final String bucketName = "personal-project-sns-images";
 
   public String uploadFile(String folderName, MultipartFile file) {
 
@@ -41,7 +41,7 @@ public class S3Component {
 
   private String getContentType(String originalFileName) {
     try {
-      return originalFileName.split("\\.")[1];
+      return originalFileName.substring(originalFileName.lastIndexOf(".") + 1);
     } catch (IndexOutOfBoundsException e) {
       throw new CustomException(ErrorCode.IMAGE_FORMAT_ERROR);
     }

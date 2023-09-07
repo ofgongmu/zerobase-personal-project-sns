@@ -15,7 +15,8 @@ public enum ErrorCode {
   ACCOUNT_DOES_NOT_EXIST("계정을 찾을 수 없습니다."),
   IMAGE_FORMAT_ERROR("이미지 형식이 올바르지 않습니다."),
   IMAGE_UPLOAD_FAILED("이미지 업로드에 실패했습니다."),
-  INCORRECT_ACCOUNT_INFO("계정 정보가 일치하지 않습니다.");
+  INCORRECT_ACCOUNT_INFO("계정 정보가 일치하지 않습니다."),
+  NOT_FOLLOWED_ACCOUNT("현재 팔로우하고 있지 않는 계정입니다.");
 
   private final String message;
 }
