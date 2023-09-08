@@ -7,13 +7,15 @@ import lombok.Getter;
 
 @Getter
 @Builder
-public class WritePostResponseDto {
-  String text;
-  String imageUrl;
-  LocalDateTime createdDate;
+public class PostResponseDto {
+  private String writerId;
+  private String text;
+  private String imageUrl;
+  private LocalDateTime createdDate;
 
-  public static WritePostResponseDto fromEntity(Post post) {
-    return WritePostResponseDto.builder()
+  public static PostResponseDto fromEntity(Post post) {
+    return PostResponseDto.builder()
+        .writerId(post.getAccount().getId())
         .text(post.getText())
         .imageUrl(post.getImageUrl())
         .createdDate(post.getCreatedDate())
