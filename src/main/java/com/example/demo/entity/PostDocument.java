@@ -15,17 +15,17 @@ import org.springframework.data.elasticsearch.annotations.ValueConverter;
 @Builder
 public class PostDocument {
   @Id
-  String documentId;
+  private String documentId;
   @Field(type = FieldType.Long)
-  Long postNum;
-  String accountNickName;
-  String accountId;
-  String profileImageUrl;
+  private Long postNum;
+  private String accountNickName;
+  private String accountId;
+  private String profileImageUrl;
   @Field(type = FieldType.Text)
-  String text;
-  String imageUrl;
+  private String text;
+  private String imageUrl;
   @ValueConverter(LocalDateTimeConverter.class)
-  LocalDateTime createdDate;
+  private LocalDateTime createdDate;
 
   public static PostDocument fromPost(Post post) {
     return PostDocument.builder()

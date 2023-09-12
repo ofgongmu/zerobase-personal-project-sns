@@ -1,7 +1,5 @@
 package com.example.demo.controller;
 
-import com.example.demo.model.feed.FeedRequestDto;
-import com.example.demo.model.feed.SearchRequestDto;
 import com.example.demo.model.feed.WriteRequestDto;
 import com.example.demo.service.FeedService;
 import jakarta.validation.Valid;
@@ -12,7 +10,6 @@ import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
@@ -46,8 +43,8 @@ public class FeedController {
   }
 
   @GetMapping("/feed")
-  public ResponseEntity<?> seeFeed(@AuthenticationPrincipal String id, @RequestBody FeedRequestDto request) {
-    return ResponseEntity.ok(feedService.seeFeed(id, request));
+  public ResponseEntity<?> seeFeed(@AuthenticationPrincipal String id, @RequestParam Long lastPostNum) {
+    return ResponseEntity.ok(feedService.seeFeed(id, lastPostNum));
   }
 
   @PostMapping("/post/{postNum}/comment")
@@ -73,7 +70,8 @@ public class FeedController {
   }
 
   @GetMapping("/search")
-  public ResponseEntity<?> search(@AuthenticationPrincipal String id, @RequestBody SearchRequestDto request) {
-    return ResponseEntity.ok(feedService.search(id, request));
+  public ResponseEntity<?> search(@AuthenticationPrincipal String id,
+                                  @RequestParam String keyword, @RequestParam int page) {
+    return ResponseEntity.ok(feedService.search(id, keyword, page));
   }
 }

@@ -9,7 +9,7 @@ import lombok.Getter;
 @Getter
 @Builder
 public class SuggestTagResponseDto {
-  List<String> ids;
+  private List<String> ids;
 
   public static SuggestTagResponseDto fromEntities(List<Account> ids) {
     return SuggestTagResponseDto.builder()

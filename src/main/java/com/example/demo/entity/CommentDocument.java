@@ -15,19 +15,19 @@ import org.springframework.data.elasticsearch.annotations.ValueConverter;
 @Builder
 public class CommentDocument {
   @Id
-  String documentId;
+  private String documentId;
   @Field(type = FieldType.Long)
-  Long commentNum;
-  String accountNickName;
-  String accountId;
-  String profileImageUrl;
+  private Long commentNum;
+  private String accountNickName;
+  private String accountId;
+  private String profileImageUrl;
   @Field(type = FieldType.Nested)
-  PostDocument postDocument;
+  private PostDocument postDocument;
   @Field(type = FieldType.Text)
-  String text;
-  String imageUrl;
+  private String text;
+  private String imageUrl;
   @ValueConverter(LocalDateTimeConverter.class)
-  LocalDateTime createdDate;
+  private LocalDateTime createdDate;
 
   public static CommentDocument fromComment(Comment comment) {
     return CommentDocument.builder()

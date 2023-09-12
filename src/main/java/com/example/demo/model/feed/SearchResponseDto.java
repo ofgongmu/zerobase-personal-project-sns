@@ -7,5 +7,5 @@ import lombok.Getter;
 @Getter
 @Builder
 public class SearchResponseDto {
-  List<SearchResultDto> resultList;
+  private List<SearchResultDto> resultList;
 }
