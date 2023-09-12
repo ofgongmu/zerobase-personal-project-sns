@@ -1,6 +1,7 @@
 package com.example.demo.controller;
 
 import com.example.demo.model.feed.FeedRequestDto;
+import com.example.demo.model.feed.SearchRequestDto;
 import com.example.demo.model.feed.WriteRequestDto;
 import com.example.demo.service.FeedService;
 import jakarta.validation.Valid;
@@ -69,5 +70,10 @@ public class FeedController {
   @GetMapping("/comment/{commentNum}")
   public ResponseEntity<?> seeComment(@AuthenticationPrincipal String id, @PathVariable Long commentNum) {
     return ResponseEntity.ok(feedService.seeComment(id, commentNum));
+  }
+
+  @GetMapping("/search")
+  public ResponseEntity<?> search(@AuthenticationPrincipal String id, @RequestBody SearchRequestDto request) {
+    return ResponseEntity.ok(feedService.search(id, request));
   }
 }
