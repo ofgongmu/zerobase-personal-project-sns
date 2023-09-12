@@ -11,4 +11,5 @@ public interface FollowRepository extends JpaRepository<Follow, Long> {
   Optional<Follow> findByFollowingAndFollowed(Account following, Account followed);
   List<Follow> findByFollowedAndState(Account followed, FollowState state);
   List<Follow> findByFollowingAndState(Account following, FollowState state);
+  boolean existsByFollowingAndFollowedAndState(Account following, Account followed, FollowState state);
 }

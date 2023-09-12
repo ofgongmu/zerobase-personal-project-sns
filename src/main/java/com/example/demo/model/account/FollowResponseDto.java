@@ -1,4 +1,4 @@
-package com.example.demo.model;
+package com.example.demo.model.account;
 
 import com.example.demo.constants.FollowState;
 import com.example.demo.entity.Follow;
