@@ -12,7 +12,7 @@ public class TagUtil {
     String[] textArr = text.split(" ");
     for(String s: textArr) {
       if (Pattern.matches(regex, s)) {
-        ids.add(s);
+        ids.add(s.substring(1));
       }
     }
     return ids;

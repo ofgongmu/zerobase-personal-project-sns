@@ -23,14 +23,14 @@ import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 public class Comment {
   @Id
   @GeneratedValue(strategy = GenerationType.IDENTITY)
-  Long commentNum;
+  private Long commentNum;
   @ManyToOne
-  Account account;
+  private Account account;
   @ManyToOne
-  Post post;
-  String text;
-  String imageUrl;
+  private Post post;
+  private String text;
+  private String imageUrl;
   @CreatedDate
-  LocalDateTime createdDate;
+  private LocalDateTime createdDate;
 
 }

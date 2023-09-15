@@ -9,9 +9,9 @@ import lombok.Getter;
 @Getter
 @Builder
 public class WriteResponseDto {
-  String text;
-  String imageUrl;
-  LocalDateTime createdDate;
+  private String text;
+  private String imageUrl;
+  private LocalDateTime createdDate;
 
   public static WriteResponseDto fromEntity(Post post) {
     return WriteResponseDto.builder()

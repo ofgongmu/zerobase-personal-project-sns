@@ -23,11 +23,11 @@ import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 public class Post {
   @Id
   @GeneratedValue(strategy = GenerationType.IDENTITY)
-  Long postNum;
+  private Long postNum;
   @ManyToOne
-  Account account;
-  String text;
-  String imageUrl;
+  private Account account;
+  private String text;
+  private String imageUrl;
   @CreatedDate
-  LocalDateTime createdDate;
+  private LocalDateTime createdDate;
 }

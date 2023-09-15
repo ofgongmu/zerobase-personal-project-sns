@@ -21,10 +21,10 @@ import lombok.NoArgsConstructor;
 public class Tag {
   @Id
   @GeneratedValue(strategy = GenerationType.IDENTITY)
-  Long tagNum;
+  private Long tagNum;
   @ManyToOne
-  Account taggedAccount;
+  private Account taggedAccount;
   @Enumerated(value = EnumType.STRING)
-  ContentType contentType;
-  Long contentNum;
+  private ContentType contentType;
+  private Long contentNum;
 }

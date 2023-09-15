@@ -5,30 +5,43 @@ import com.example.demo.constants.ContentType;
 import com.example.demo.constants.FollowState;
 import com.example.demo.entity.Account;
 import com.example.demo.entity.Comment;
+import com.example.demo.entity.CommentDocument;
 import com.example.demo.entity.Follow;
 import com.example.demo.entity.Post;
+import com.example.demo.entity.PostDocument;
 import com.example.demo.entity.Tag;
 import com.example.demo.exception.CustomException;
 import com.example.demo.exception.ErrorCode;
 import com.example.demo.model.feed.CommentResponseDto;
-import com.example.demo.model.feed.FeedRequestDto;
+import com.example.demo.model.feed.Content;
 import com.example.demo.model.feed.FeedResponseDto;
+import com.example.demo.model.feed.SearchResponseDto;
+import com.example.demo.model.feed.SearchResultDto;
 import com.example.demo.model.feed.SeeCommentResponseDto;
 import com.example.demo.model.feed.SeePostResponseDto;
 import com.example.demo.model.feed.SuggestTagResponseDto;
 import com.example.demo.model.feed.WriteRequestDto;
 import com.example.demo.model.feed.WriteResponseDto;
 import com.example.demo.repository.AccountRepository;
+import com.example.demo.repository.CommentDocumentRepository;
 import com.example.demo.repository.CommentRepository;
 import com.example.demo.repository.FollowRepository;
+import com.example.demo.repository.PostDocumentRepository;
 import com.example.demo.repository.PostRepository;
 import com.example.demo.repository.TagRepository;
 import com.example.demo.util.TagUtil;
-import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.elasticsearch.core.ElasticsearchOperations;
+import org.springframework.data.elasticsearch.core.SearchHits;
+import org.springframework.data.elasticsearch.core.document.Document;
+import org.springframework.data.elasticsearch.core.mapping.IndexCoordinates;
+import org.springframework.data.elasticsearch.core.query.Criteria;
+import org.springframework.data.elasticsearch.core.query.CriteriaQuery;
+import org.springframework.data.elasticsearch.core.query.Query;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -38,10 +51,13 @@ public class FeedService {
   private final AccountRepository accountRepository;
   private final FollowRepository followRepository;
   private final PostRepository postRepository;
+  private final PostDocumentRepository postDocumentRepository;
   private final CommentRepository commentRepository;
+  private final CommentDocumentRepository commentDocumentRepository;
   private final TagRepository tagRepository;
 
   private final S3Component s3Component;
+  private final ElasticsearchOperations elasticsearchOperations;
 
   public WriteResponseDto writePost(String id, WriteRequestDto request, MultipartFile image) {
     Account account = accountRepository.findById(id)
@@ -49,11 +65,11 @@ public class FeedService {
     Post post = Post.builder()
         .account(account)
         .text(request.getText())
-        .createdDate(LocalDateTime.now())
+        .imageUrl(uploadPostImageIfExists(image))
         .build();
     postRepository.save(post);
+    postDocumentRepository.save(PostDocument.fromPost(post));
     extractAndSaveAllTags(post);
-    uploadPostImageIfExists(image, post);
     return WriteResponseDto.fromEntity(post);
   }
 
@@ -66,13 +82,24 @@ public class FeedService {
         .orElseThrow(() -> new CustomException(ErrorCode.POST_DOES_NOT_EXIST));
     checkIfPostWriter(id, post);
     deleteRelatedTags(post);
+    PostDocument postDocument = postDocumentRepository.findByPostNum(postNum)
+        .orElseThrow(() -> new CustomException(ErrorCode.POST_DOES_NOT_EXIST));
+
     List<Comment> relatedComments = commentRepository.findByPost(post);
     for (Comment comment: relatedComments) {
       commentRepository.save(comment.toBuilder()
           .post(null)
           .build());
     }
+    List<CommentDocument> relatedCommentDocuments =
+        commentDocumentRepository.findByPostDocumentNum(postDocument.getPostNum());
+    for (CommentDocument commentDocument: relatedCommentDocuments) {
+      commentDocument.setPostDocument(null);
+      commentDocumentRepository.save(commentDocument);
+    }
+
     postRepository.delete(post);
+    postDocumentRepository.delete(postDocument);
   }
 
   public SeePostResponseDto seePost(String id, Long postNum) {
@@ -87,14 +114,14 @@ public class FeedService {
     return response;
   }
 
-  public FeedResponseDto seeFeed(String id, FeedRequestDto request) {
+  public FeedResponseDto seeFeed(String id, Long lastPostNum) {
     Account account = accountRepository.findById(id)
         .orElseThrow(() -> new CustomException(ErrorCode.ACCOUNT_DOES_NOT_EXIST));
     // 스크롤이 아래 끝에 도달할 때마다 프론트엔드 측에서 가장 오래된 포스트의 번호를 받아와, 해당 번호로부터 20개를 추가적으로 로드하는 로직
     // 첫 진입 시 lastPostNum의 기본값은 Long.MAX_VALUE로 상정
     return FeedResponseDto.fromEntities(
         postRepository.findByAccountIsInAndPostNumLessThanOrderByPostNumDesc(
-            getSelfAndFollowingList(account), request.getLastPostNum(), PageRequest.of(0, 20)));
+            getSelfAndFollowingList(account), lastPostNum, PageRequest.of(0, 20)));
   }
 
   public WriteResponseDto writeComment(String id, Long postNum, WriteRequestDto request, MultipartFile image) {
@@ -106,11 +133,11 @@ public class FeedService {
         .account(account)
         .post(post)
         .text(request.getText())
-        .createdDate(LocalDateTime.now())
+        .imageUrl(uploadCommentImageIfExists(image))
         .build();
     commentRepository.save(comment);
+    commentDocumentRepository.save(CommentDocument.fromComment(comment));
     extractAndSaveAllTags(comment);
-    uploadCommentImageIfExists(image, comment);
     return WriteResponseDto.fromEntity(comment);
   }
 
@@ -119,7 +146,10 @@ public class FeedService {
         .orElseThrow(() -> new CustomException(ErrorCode.COMMENT_DOES_NOT_EXIST));
     checkIfCommentWriter(id, comment);
     deleteRelatedTags(comment);
+    CommentDocument commentDocument = commentDocumentRepository.findByCommentNum(commentNum)
+            .orElseThrow(() -> new CustomException(ErrorCode.COMMENT_DOES_NOT_EXIST));
     commentRepository.delete(comment);
+    commentDocumentRepository.delete(commentDocument);
   }
 
   public SeeCommentResponseDto seeComment (String id, Long commentNum) {
@@ -132,24 +162,45 @@ public class FeedService {
     return response;
   }
 
-  private void uploadPostImageIfExists(MultipartFile image, Post post) {
-    if (image != null) {
-      postRepository.save(post.toBuilder()
-          .imageUrl(s3Component.uploadFile("post/", image))
-          .build());
+  public SearchResponseDto search (String id, String keyword, int page) {
+    Account account = accountRepository.findById(id)
+        .orElseThrow(() -> new CustomException(ErrorCode.ACCOUNT_DOES_NOT_EXIST));
+    // 먼저 es를 통해 text match 조건을 만족하는 포스트 혹은 댓글을 적당한 크기로(50개) 가져오고
+    Query query = new CriteriaQuery(new Criteria("text").matches(keyword))
+        .addSort(Sort.by("createdDate").descending()).setPageable(PageRequest.of(page, 50));
+    SearchHits<Content> searchHits =
+        elasticsearchOperations.search(query, Content.class, IndexCoordinates.of("content"));
+    // 이후 각 포스트 혹은 댓글에 대해 열람할 수 있는 콘텐츠인지 확인해 가능한 콘텐츠만을 리스트에 넣어 보여주는 코드입니다.
+    List<SearchResultDto> response = new ArrayList<>();
+    searchHits.forEach(searchHit -> {
+        Content content =
+            elasticsearchOperations.getElasticsearchConverter().read(Content.class, Document.from(searchHit.getContent()));
+        if (!checkIfHiddenContent(account, content.get("accountId").toString())) {
+          response.add(SearchResultDto.fromContent(content));
+        }
+    });
+    // 다만 이렇게 하면 검색 결과 개수가 불규칙하고, 결과가 하나도 나오지 않을 가능성도 있으며, 불필요한 포스트 또는 댓글까지 가져온다는 점에서
+    // 좋지 않은 방법이라는 것을 알고 있지만 더 나은 방법이 생각나지 않아, 혹시 조언해주실 수 있다면 감사하겠습니다!
+    return SearchResponseDto.builder()
+        .resultList(response)
+        .build();
+  }
+
+  private String uploadPostImageIfExists(MultipartFile image) {
+    if (image == null) {
+      return null;
     }
+    return s3Component.uploadFile("post/", image);
   }
 
   private void checkIfPostWriter(String id, Post post) {
     if (!id.equals(post.getAccount().getId())) {
-      throw new CustomException(ErrorCode.UNABLE_TO_DELETE_POST);
+      throw new CustomException(ErrorCode.IS_NOT_POST_WRITER);
     }
   }
 
   private void deleteRelatedTags(Post post) {
-    List<Tag> relatedTags
-        = tagRepository.findByContentTypeAndContentNum(ContentType.POST, post.getPostNum());
-    tagRepository.deleteAll(relatedTags);
+    tagRepository.deleteAllByContentTypeAndContentNum(ContentType.POST, post.getPostNum());
   }
 
   private boolean checkIfHiddenPost(String id, Post post) {
@@ -175,9 +226,11 @@ public class FeedService {
   }
 
   private List<CommentResponseDto> hideProtectedComments(String id, List<Comment> comments) {
+    Account readerAccount = accountRepository.findById(id)
+        .orElseThrow(() -> new CustomException(ErrorCode.ACCOUNT_DOES_NOT_EXIST));
     List<CommentResponseDto> commentResponse = new ArrayList<>();
     for (Comment comment : comments) {
-      if (checkIfHiddenComment(id, comment)) {
+      if (checkIfHiddenComment(readerAccount, comment)) {
         commentResponse.add(CommentResponseDto.fromEntityClosed(comment));
       } else {
         commentResponse.add(CommentResponseDto.fromEntity(comment));
@@ -187,8 +240,11 @@ public class FeedService {
   }
 
   private SeeCommentResponseDto hideProtectedComment(String id, Comment comment) {
+    Account readerAccount = accountRepository.findById(id)
+        .orElseThrow(() -> new CustomException(ErrorCode.ACCOUNT_DOES_NOT_EXIST));
+
     SeeCommentResponseDto response;
-    if (checkIfHiddenComment(id, comment)) {
+    if (checkIfHiddenComment(readerAccount, comment)) {
       response = SeeCommentResponseDto.fromEntityClosed(comment);
     } else {
       response = SeeCommentResponseDto.fromEntity(comment);
@@ -207,7 +263,7 @@ public class FeedService {
   private void extractAndSaveAllTags(Post post) {
     List<Tag> tags = new ArrayList<>();
     for(String tag: TagUtil.getIds(post.getText())) {
-      Account taggedAccount = accountRepository.findById(tag.substring(1))
+      Account taggedAccount = accountRepository.findById(tag)
           .orElseThrow(() -> new CustomException(ErrorCode.ACCOUNT_DOES_NOT_EXIST));
       tags.add(Tag.builder()
           .taggedAccount(taggedAccount)
@@ -223,7 +279,7 @@ public class FeedService {
     tagOriginalPostWriter(tags, comment);
 
     for(String tag: TagUtil.getIds(comment.getText())) {
-      Account taggedAccount = accountRepository.findById(tag.substring(1))
+      Account taggedAccount = accountRepository.findById(tag)
           .orElseThrow(() -> new CustomException(ErrorCode.ACCOUNT_DOES_NOT_EXIST));
 
       tags.add(Tag.builder()
@@ -243,31 +299,32 @@ public class FeedService {
         .build());
   }
 
-  private void uploadCommentImageIfExists(MultipartFile image, Comment comment) {
-    if (image != null) {
-      commentRepository.save(comment.toBuilder()
-          .imageUrl(s3Component.uploadFile("comment/", image))
-          .build());
+  private String uploadCommentImageIfExists(MultipartFile image) {
+    if (image == null) {
+      return null;
     }
+    return s3Component.uploadFile("comment/", image);
   }
 
   private void checkIfCommentWriter(String id, Comment comment) {
     if (!id.equals(comment.getAccount().getId())) {
-      throw new CustomException(ErrorCode.UNABLE_TO_DELETE_COMMENT);
+      throw new CustomException(ErrorCode.IS_NOT_COMMENT_WRITER);
     }
   }
 
   private void deleteRelatedTags(Comment comment) {
-    List<Tag> relatedTags
-        = tagRepository.findByContentTypeAndContentNum(ContentType.COMMENT, comment.getCommentNum());
-    tagRepository.deleteAll(relatedTags);
+    tagRepository.deleteAllByContentTypeAndContentNum(ContentType.COMMENT, comment.getCommentNum());
   }
 
-  private boolean checkIfHiddenComment(String id, Comment comment) {
-    Account readerAccount = accountRepository.findById(id)
-        .orElseThrow(() -> new CustomException(ErrorCode.ACCOUNT_DOES_NOT_EXIST));
+  private boolean checkIfHiddenComment(Account readerAccount, Comment comment) {
     return !readerAccount.equals(comment.getAccount())
         && comment.getAccount().getIsProtected() && !checkIfFollower(comment.getAccount(), readerAccount);
   }
 
+  private boolean checkIfHiddenContent(Account readerAccount, String writerAccountId) {
+    Account writerAccount = accountRepository.findById(writerAccountId)
+        .orElseThrow(() -> new CustomException(ErrorCode.ACCOUNT_DOES_NOT_EXIST));
+    return !readerAccount.equals(writerAccount)
+        && writerAccount.getIsProtected() && !checkIfFollower(writerAccount, readerAccount);
+  }
 }
