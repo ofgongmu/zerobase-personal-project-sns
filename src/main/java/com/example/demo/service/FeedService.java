@@ -25,6 +25,7 @@ import com.example.demo.model.feed.WriteResponseDto;
 import com.example.demo.repository.AccountRepository;
 import com.example.demo.repository.CommentDocumentRepository;
 import com.example.demo.repository.CommentRepository;
+import com.example.demo.repository.ContentSearchRepository;
 import com.example.demo.repository.FollowRepository;
 import com.example.demo.repository.PostDocumentRepository;
 import com.example.demo.repository.PostRepository;
@@ -34,14 +35,6 @@ import java.util.ArrayList;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Sort;
-import org.springframework.data.elasticsearch.core.ElasticsearchOperations;
-import org.springframework.data.elasticsearch.core.SearchHits;
-import org.springframework.data.elasticsearch.core.document.Document;
-import org.springframework.data.elasticsearch.core.mapping.IndexCoordinates;
-import org.springframework.data.elasticsearch.core.query.Criteria;
-import org.springframework.data.elasticsearch.core.query.CriteriaQuery;
-import org.springframework.data.elasticsearch.core.query.Query;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -54,10 +47,10 @@ public class FeedService {
   private final PostDocumentRepository postDocumentRepository;
   private final CommentRepository commentRepository;
   private final CommentDocumentRepository commentDocumentRepository;
+  private final ContentSearchRepository contentSearchRepository;
   private final TagRepository tagRepository;
 
   private final S3Component s3Component;
-  private final ElasticsearchOperations elasticsearchOperations;
 
   public WriteResponseDto writePost(String id, WriteRequestDto request, MultipartFile image) {
     Account account = accountRepository.findById(id)
@@ -165,22 +158,18 @@ public class FeedService {
   public SearchResponseDto search (String id, String keyword, int page) {
     Account account = accountRepository.findById(id)
         .orElseThrow(() -> new CustomException(ErrorCode.ACCOUNT_DOES_NOT_EXIST));
-    // 먼저 es를 통해 text match 조건을 만족하는 포스트 혹은 댓글을 적당한 크기로(50개) 가져오고
-    Query query = new CriteriaQuery(new Criteria("text").matches(keyword))
-        .addSort(Sort.by("createdDate").descending()).setPageable(PageRequest.of(page, 50));
-    SearchHits<Content> searchHits =
-        elasticsearchOperations.search(query, Content.class, IndexCoordinates.of("content"));
+    // 먼저 es를 통해 text match 조건을 만족하는 포스트 혹은 댓글을 적당한 크기로(100개) 가져오고
+    List<Content> contents = contentSearchRepository.findContentsByKeyword(keyword, page);
     // 이후 각 포스트 혹은 댓글에 대해 열람할 수 있는 콘텐츠인지 확인해 가능한 콘텐츠만을 리스트에 넣어 보여주는 코드입니다.
     List<SearchResultDto> response = new ArrayList<>();
-    searchHits.forEach(searchHit -> {
-        Content content =
-            elasticsearchOperations.getElasticsearchConverter().read(Content.class, Document.from(searchHit.getContent()));
-        if (!checkIfHiddenContent(account, content.get("accountId").toString())) {
-          response.add(SearchResultDto.fromContent(content));
+    for (Content content: contents) {
+      if (!checkIfHiddenContent(account, content.get("accountId").toString())) {
+        response.add(SearchResultDto.fromContent(content));
+        if (response.size() >= 20) {
+          break;
         }
-    });
-    // 다만 이렇게 하면 검색 결과 개수가 불규칙하고, 결과가 하나도 나오지 않을 가능성도 있으며, 불필요한 포스트 또는 댓글까지 가져온다는 점에서
-    // 좋지 않은 방법이라는 것을 알고 있지만 더 나은 방법이 생각나지 않아, 혹시 조언해주실 수 있다면 감사하겠습니다!
+      }
+    }
     return SearchResponseDto.builder()
         .resultList(response)
         .build();
