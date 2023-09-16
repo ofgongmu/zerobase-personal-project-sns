@@ -1,10 +1,7 @@
 package com.example.demo.entity;
 
-import com.example.demo.constants.DMType;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EntityListeners;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -31,8 +28,6 @@ public class DM {
   private DMRoom dmRoom;
   @ManyToOne
   private Account account;
-  @Enumerated(value = EnumType.STRING)
-  private DMType dmType;
   private String text;
   private String imageUrl;
   @CreatedDate

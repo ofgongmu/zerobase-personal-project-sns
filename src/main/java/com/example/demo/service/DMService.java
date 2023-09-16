@@ -105,8 +105,9 @@ public class DMService {
     template.convertAndSend("/sub/dm/room/" + dmRoom.getDmRoomNum(),
         invitedNicknames.substring(0, invitedNicknames.length() - 2) + "이(가) 입장했습니다.");
 
+
     return DMRoomContentResponseDto.builder()
-        .dms(dmRoom.getDms().stream().map(DMInfo::fromEntity).collect(Collectors.toList()))
+        .dms(dmRepository.findAllByDmRoom(dmRoom).stream().map(DMInfo::fromEntity).collect(Collectors.toList()))
         .build();
   }
 
@@ -127,14 +128,14 @@ public class DMService {
       template.convertAndSend("sub/dm/room/" + dmRoom.getDmRoomNum(), imageUrl);
     }
 
-    dmRoom.getDms().add(dmRepository.save(DM.builder()
+    dmRepository.save(DM.builder()
         .account(account)
         .text(request.getText())
         .imageUrl(imageUrl)
-        .build()));
+        .build());
 
     return DMRoomContentResponseDto.builder()
-        .dms(dmRoom.getDms().stream().map(DMInfo::fromEntity).collect(Collectors.toList()))
+        .dms(dmRepository.findAllByDmRoom(dmRoom).stream().map(DMInfo::fromEntity).collect(Collectors.toList()))
         .build();
   }
 
@@ -146,7 +147,7 @@ public class DMService {
     checkIfInDMRoom(account, dmRoom);
 
     return DMRoomContentResponseDto.builder()
-        .dms(dmRoom.getDms().stream().map(DMInfo::fromEntity).collect(Collectors.toList()))
+        .dms(dmRepository.findAllByDmRoom(dmRoom).stream().map(DMInfo::fromEntity).collect(Collectors.toList()))
         .build();
   }
 
