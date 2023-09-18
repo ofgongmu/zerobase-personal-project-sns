@@ -10,6 +10,8 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface PostRepository extends JpaRepository<Post, Long> {
   Optional<Post> findByPostNum(Long postNum);
+
+  Page<Post> findByAccountAndPostNumLessThanOrderByPostNumDesc(Account account, Long postNum, PageRequest pageRequest);
   Page<Post> findByAccountIsInAndPostNumLessThanOrderByPostNumDesc(
       List<Account> followingList, Long lastPostNum, PageRequest pageRequest);
 }

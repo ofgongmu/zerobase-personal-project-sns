@@ -29,6 +29,7 @@ import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 @Service
@@ -44,6 +45,7 @@ public class DMService {
   private final KafkaProducerComponent kafkaProducerComponent;
   private final SimpMessagingTemplate template;
 
+  @Transactional
   public DMRoomInviteResponseDto createDMRoom(String id, DMRoomInviteRequestDto request) {
     Account inviterAccount = accountRepository.findById(id)
         .orElseThrow(() -> new CustomException(ErrorCode.ACCOUNT_DOES_NOT_EXIST));
@@ -69,6 +71,7 @@ public class DMService {
         .build();
   }
 
+  @Transactional(readOnly = true)
   public JoinedDMRoomsResponseDto seeJoinedDmRooms(String id) {
     Account account = accountRepository.findById(id)
         .orElseThrow(() -> new CustomException(ErrorCode.ACCOUNT_DOES_NOT_EXIST));
@@ -91,6 +94,7 @@ public class DMService {
         .build();
   }
 
+  @Transactional
   public DMRoomContentResponseDto inviteToDMRoom(String id, Long dmRoomNum, DMRoomInviteRequestDto request) {
     Account inviterAccount = accountRepository.findById(id)
         .orElseThrow(() -> new CustomException(ErrorCode.ACCOUNT_DOES_NOT_EXIST));
@@ -117,6 +121,7 @@ public class DMService {
         .build();
   }
 
+  @Transactional
   public DMRoomContentResponseDto sendDM(String id, Long dmRoomNum, SendDMRequestDto request, MultipartFile image) {
     Account account = accountRepository.findById(id)
         .orElseThrow(() -> new CustomException(ErrorCode.ACCOUNT_DOES_NOT_EXIST));
@@ -158,6 +163,7 @@ public class DMService {
         .build();
   }
 
+  @Transactional(readOnly = true)
   public DMRoomContentResponseDto seeDmRoom(String id, Long dmRoomNum) {
     Account account = accountRepository.findById(id)
         .orElseThrow(() -> new CustomException(ErrorCode.ACCOUNT_DOES_NOT_EXIST));
@@ -170,6 +176,7 @@ public class DMService {
         .build();
   }
 
+  @Transactional
   public void leaveDMRoom(String id, Long dmRoomNum) {
     Account account = accountRepository.findById(id)
         .orElseThrow(() -> new CustomException(ErrorCode.ACCOUNT_DOES_NOT_EXIST));

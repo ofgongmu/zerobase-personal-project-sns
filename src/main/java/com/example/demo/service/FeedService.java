@@ -39,6 +39,7 @@ import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 @Service
@@ -57,6 +58,7 @@ public class FeedService {
   private final S3Component s3Component;
   private final KafkaProducerComponent kafkaProducerComponent;
 
+  @Transactional
   public WriteResponseDto writePost(String id, WriteRequestDto request, MultipartFile image) {
     Account account = accountRepository.findById(id)
         .orElseThrow(() -> new CustomException(ErrorCode.ACCOUNT_DOES_NOT_EXIST));
@@ -78,10 +80,12 @@ public class FeedService {
     return WriteResponseDto.fromEntity(post);
   }
 
+  @Transactional(readOnly = true)
   public SuggestTagResponseDto suggestTag(String tag) {
     return SuggestTagResponseDto.fromEntities(accountRepository.findByIdStartingWith(tag));
   }
 
+  @Transactional
   public void deletePost(String id, Long postNum) {
     Post post = postRepository.findByPostNum(postNum)
         .orElseThrow(() -> new CustomException(ErrorCode.POST_DOES_NOT_EXIST));
@@ -107,6 +111,7 @@ public class FeedService {
     postDocumentRepository.delete(postDocument);
   }
 
+  @Transactional(readOnly = true)
   public SeePostResponseDto seePost(String id, Long postNum) {
     Post post = postRepository.findByPostNum(postNum)
         .orElseThrow(() -> new CustomException(ErrorCode.POST_DOES_NOT_EXIST));
@@ -119,6 +124,7 @@ public class FeedService {
     return response;
   }
 
+  @Transactional(readOnly = true)
   public FeedResponseDto seeFeed(String id, Long lastPostNum) {
     Account account = accountRepository.findById(id)
         .orElseThrow(() -> new CustomException(ErrorCode.ACCOUNT_DOES_NOT_EXIST));
@@ -129,6 +135,7 @@ public class FeedService {
             getSelfAndFollowingList(account), lastPostNum, PageRequest.of(0, 20)));
   }
 
+  @Transactional
   public WriteResponseDto writeComment(String id, Long postNum, WriteRequestDto request, MultipartFile image) {
     Account account = accountRepository.findById(id)
         .orElseThrow(() -> new CustomException(ErrorCode.ACCOUNT_DOES_NOT_EXIST));
@@ -154,6 +161,7 @@ public class FeedService {
     return WriteResponseDto.fromEntity(comment);
   }
 
+  @Transactional
   public void deleteComment(String id, Long commentNum) {
     Comment comment = commentRepository.findByCommentNum(commentNum)
         .orElseThrow(() -> new CustomException(ErrorCode.COMMENT_DOES_NOT_EXIST));
@@ -165,6 +173,7 @@ public class FeedService {
     commentDocumentRepository.delete(commentDocument);
   }
 
+  @Transactional(readOnly = true)
   public SeeCommentResponseDto seeComment (String id, Long commentNum) {
     Comment comment = commentRepository.findByCommentNum(commentNum)
         .orElseThrow(() -> new CustomException(ErrorCode.COMMENT_DOES_NOT_EXIST));
@@ -175,6 +184,7 @@ public class FeedService {
     return response;
   }
 
+  @Transactional(readOnly = true)
   public SearchResponseDto search (String id, String keyword, int page) {
     Account account = accountRepository.findById(id)
         .orElseThrow(() -> new CustomException(ErrorCode.ACCOUNT_DOES_NOT_EXIST));

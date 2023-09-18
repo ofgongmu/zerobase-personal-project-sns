@@ -19,6 +19,7 @@ import org.springframework.messaging.handler.annotation.Header;
 import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
@@ -36,6 +37,7 @@ public class NotificationService {
     simpMessagingTemplate.convertAndSend("/sub/notifications/" + account.getAccountNum(), message);
   }
 
+  @Transactional(readOnly = true)
   public SeeNotificationsResponseDto seeNotificationList(String id, Long lastNoti) {
     Account account = accountRepository.findById(id)
         .orElseThrow(() -> new CustomException(ErrorCode.ACCOUNT_DOES_NOT_EXIST));
@@ -46,6 +48,7 @@ public class NotificationService {
     return SeeNotificationsResponseDto.fromEntity(notifications);
   }
 
+  @Transactional(readOnly = true)
   public String moveToContent(String id, Long notificationNum) {
     Account account = accountRepository.findById(id)
         .orElseThrow(() -> new CustomException(ErrorCode.ACCOUNT_DOES_NOT_EXIST));
