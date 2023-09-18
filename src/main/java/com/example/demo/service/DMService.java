@@ -1,10 +1,13 @@
 package com.example.demo.service;
 
+import com.example.demo.common.KafkaProducerComponent;
 import com.example.demo.common.S3Component;
+import com.example.demo.constants.ContentType;
 import com.example.demo.entity.Account;
 import com.example.demo.entity.AccountDMRoom;
 import com.example.demo.entity.DM;
 import com.example.demo.entity.DMRoom;
+import com.example.demo.entity.Notification;
 import com.example.demo.exception.CustomException;
 import com.example.demo.exception.ErrorCode;
 import com.example.demo.model.dm.AccountInfo;
@@ -19,12 +22,14 @@ import com.example.demo.repository.AccountDMRoomRepository;
 import com.example.demo.repository.AccountRepository;
 import com.example.demo.repository.DMRepository;
 import com.example.demo.repository.DMRoomRepository;
+import com.example.demo.repository.NotificationRepository;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 @Service
@@ -34,10 +39,13 @@ public class DMService {
   private final AccountDMRoomRepository accountDMRoomRepository;
   private final DMRoomRepository dmRoomRepository;
   private final DMRepository dmRepository;
+  private final NotificationRepository notificationRepository;
 
   private final S3Component s3Component;
+  private final KafkaProducerComponent kafkaProducerComponent;
   private final SimpMessagingTemplate template;
 
+  @Transactional
   public DMRoomInviteResponseDto createDMRoom(String id, DMRoomInviteRequestDto request) {
     Account inviterAccount = accountRepository.findById(id)
         .orElseThrow(() -> new CustomException(ErrorCode.ACCOUNT_DOES_NOT_EXIST));
@@ -63,6 +71,7 @@ public class DMService {
         .build();
   }
 
+  @Transactional(readOnly = true)
   public JoinedDMRoomsResponseDto seeJoinedDmRooms(String id) {
     Account account = accountRepository.findById(id)
         .orElseThrow(() -> new CustomException(ErrorCode.ACCOUNT_DOES_NOT_EXIST));
@@ -85,6 +94,7 @@ public class DMService {
         .build();
   }
 
+  @Transactional
   public DMRoomContentResponseDto inviteToDMRoom(String id, Long dmRoomNum, DMRoomInviteRequestDto request) {
     Account inviterAccount = accountRepository.findById(id)
         .orElseThrow(() -> new CustomException(ErrorCode.ACCOUNT_DOES_NOT_EXIST));
@@ -111,6 +121,7 @@ public class DMService {
         .build();
   }
 
+  @Transactional
   public DMRoomContentResponseDto sendDM(String id, Long dmRoomNum, SendDMRequestDto request, MultipartFile image) {
     Account account = accountRepository.findById(id)
         .orElseThrow(() -> new CustomException(ErrorCode.ACCOUNT_DOES_NOT_EXIST));
@@ -128,17 +139,31 @@ public class DMService {
       template.convertAndSend("sub/dm/room/" + dmRoom.getDmRoomNum(), imageUrl);
     }
 
-    dmRepository.save(DM.builder()
+    DM dm = DM.builder()
         .account(account)
         .text(request.getText())
         .imageUrl(imageUrl)
-        .build());
+        .build();
+    dmRepository.save(dm);
+
+    for (AccountDMRoom joinedAccount: accountDMRoomRepository.findByDmRoom(dmRoom)) {
+      if (account.equals(joinedAccount.getAccount())) {
+        continue;
+      }
+      notificationRepository.save(Notification.builder()
+          .account(joinedAccount.getAccount())
+          .contentType(ContentType.DM)
+          .contentId(dm.getDmNum())
+          .text(kafkaProducerComponent.sendDMNotification(dm, joinedAccount.getAccount().getId()))
+          .build());
+    }
 
     return DMRoomContentResponseDto.builder()
         .dms(dmRepository.findAllByDmRoom(dmRoom).stream().map(DMInfo::fromEntity).collect(Collectors.toList()))
         .build();
   }
 
+  @Transactional(readOnly = true)
   public DMRoomContentResponseDto seeDmRoom(String id, Long dmRoomNum) {
     Account account = accountRepository.findById(id)
         .orElseThrow(() -> new CustomException(ErrorCode.ACCOUNT_DOES_NOT_EXIST));
@@ -151,6 +176,7 @@ public class DMService {
         .build();
   }
 
+  @Transactional
   public void leaveDMRoom(String id, Long dmRoomNum) {
     Account account = accountRepository.findById(id)
         .orElseThrow(() -> new CustomException(ErrorCode.ACCOUNT_DOES_NOT_EXIST));

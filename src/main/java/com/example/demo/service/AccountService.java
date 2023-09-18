@@ -5,6 +5,7 @@ import com.example.demo.common.S3Component;
 import com.example.demo.constants.FollowState;
 import com.example.demo.entity.Account;
 import com.example.demo.entity.Follow;
+import com.example.demo.entity.Post;
 import com.example.demo.exception.CustomException;
 import com.example.demo.exception.ErrorCode;
 import com.example.demo.model.account.AccountProtectionResponseDto;
@@ -25,15 +26,19 @@ import com.example.demo.model.account.ValidEmailResponseDto;
 import com.example.demo.redis.DistributedLock;
 import com.example.demo.repository.AccountRepository;
 import com.example.demo.repository.FollowRepository;
+import com.example.demo.repository.PostRepository;
 import com.example.demo.security.AccountUserDetails;
 import com.example.demo.security.TokenProvider;
 import com.example.demo.util.PasswordUtil;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 @Service
@@ -41,6 +46,7 @@ import org.springframework.web.multipart.MultipartFile;
 public class AccountService implements UserDetailsService {
   private final AccountRepository accountRepository;
   private final FollowRepository followRepository;
+  private final PostRepository postRepository;
 
   private final TokenProvider tokenProvider;
 
@@ -53,6 +59,7 @@ public class AccountService implements UserDetailsService {
         .orElseThrow(() -> new CustomException(ErrorCode.ACCOUNT_DOES_NOT_EXIST));
     return new AccountUserDetails(account);
   }
+  @Transactional
   public SignUpResponseDto signup(SignUpRequestDto request) {
 
     checkIfUnregisteredEmail(request.getEmail());
@@ -69,6 +76,7 @@ public class AccountService implements UserDetailsService {
         .build()));
   }
 
+  @Transactional(readOnly = true)
   public ValidEmailResponseDto validateEmail(ValidEmailRequestDto request) {
 
     Account account = accountRepository.findByEmail(request.getEmail())
@@ -79,6 +87,7 @@ public class AccountService implements UserDetailsService {
         .isActivated(true).build()));
   }
 
+  @Transactional
   @DistributedLock(key = "#key")
   public AccountSetupResponseDto accountSetup(final String key, AccountSetupRequestDto request, MultipartFile image) {
 
@@ -96,6 +105,7 @@ public class AccountService implements UserDetailsService {
         .build()));
   }
 
+  @Transactional(readOnly = true)
   public LogInResponseDto login(LogInRequestDto request) {
     Account account = accountRepository.findById(request.getId())
         .orElseThrow(() -> new CustomException(ErrorCode.INCORRECT_ACCOUNT_INFO));
@@ -109,6 +119,7 @@ public class AccountService implements UserDetailsService {
         .build();
   }
 
+  @Transactional
   public AccountProtectionResponseDto changeAccountProtection(String id) {
     Account account = accountRepository.findById(id)
         .orElseThrow(() -> new CustomException(ErrorCode.ACCOUNT_DOES_NOT_EXIST));
@@ -117,12 +128,14 @@ public class AccountService implements UserDetailsService {
         .build()));
   }
 
+  @Transactional(readOnly = true)
   public AccountSearchResponseDto searchAccount(AccountSearchRequestDto request) {
     return AccountSearchResponseDto.fromEntities(
         accountRepository.findByIdStartingWith(request.getKeyword()));
   }
 
-  public SeeAccountResponseDto seeAccount(String id, String targetId) {
+  @Transactional(readOnly = true)
+  public SeeAccountResponseDto seeAccount(String id, String targetId, Long lastPostNum) {
     Account account = accountRepository.findById(id)
         .orElseThrow(() -> new CustomException(ErrorCode.ACCOUNT_DOES_NOT_EXIST));
     Account targetAccount = accountRepository.findById(targetId)
@@ -130,16 +143,19 @@ public class AccountService implements UserDetailsService {
 
     Optional<Follow> follow = followRepository.findByFollowingAndFollowed(account, targetAccount);
 
-    /* TODO: 비공개 계정의 경우 포스트 안 보이게 할 것
     if (targetAccount.getIsProtected() &&
         (follow.isEmpty() || follow.get().getState() != FollowState.ACCEPTED)) {
+      return SeeAccountResponseDto.fromEntity(targetAccount, null);
     }
-    */
 
-    return SeeAccountResponseDto.fromEntity(targetAccount);
+    Page<Post> posts
+        = postRepository.findByAccountAndPostNumLessThanOrderByPostNumDesc(account, lastPostNum, PageRequest.of(0, 10));
+
+    return SeeAccountResponseDto.fromEntity(targetAccount, posts);
 
   }
 
+  @Transactional
   public FollowResponseDto follow(String id, String targetId) {
     Account account = accountRepository.findById(id)
         .orElseThrow(() -> new CustomException(ErrorCode.ACCOUNT_DOES_NOT_EXIST));
@@ -155,6 +171,7 @@ public class AccountService implements UserDetailsService {
         .build()));
   }
 
+  @Transactional
   public void unfollow(String id, String targetId) {
     Account account = accountRepository.findById(id)
         .orElseThrow(() -> new CustomException(ErrorCode.ACCOUNT_DOES_NOT_EXIST));
@@ -165,6 +182,7 @@ public class AccountService implements UserDetailsService {
     followRepository.delete(follow);
   }
 
+  @Transactional(readOnly = true)
   public PendingListResponseDto seePendingList(String id) {
     Account account = accountRepository.findById(id)
         .orElseThrow(() -> new CustomException(ErrorCode.ACCOUNT_DOES_NOT_EXIST));
@@ -172,6 +190,7 @@ public class AccountService implements UserDetailsService {
         followRepository.findByFollowedAndState(account, FollowState.PENDING));
   }
 
+  @Transactional
   public FollowResponseDto acceptFollow(String id, String targetId) {
     Account account = accountRepository.findById(id)
         .orElseThrow(() -> new CustomException(ErrorCode.ACCOUNT_DOES_NOT_EXIST));
@@ -184,6 +203,7 @@ public class AccountService implements UserDetailsService {
         .build()));
   }
 
+  @Transactional
   public FollowListResponseDto seeFollowingList(String id) {
     Account account = accountRepository.findById(id)
         .orElseThrow(() -> new CustomException(ErrorCode.ACCOUNT_DOES_NOT_EXIST));
@@ -191,6 +211,7 @@ public class AccountService implements UserDetailsService {
         followRepository.findByFollowingAndState(account, FollowState.ACCEPTED));
   }
 
+  @Transactional(readOnly = true)
   public FollowListResponseDto seeFollowersList(String id) {
     Account account = accountRepository.findById(id)
         .orElseThrow(() -> new CustomException(ErrorCode.ACCOUNT_DOES_NOT_EXIST));

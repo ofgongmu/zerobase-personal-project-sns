@@ -6,6 +6,7 @@ import com.example.demo.service.DMService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.messaging.handler.annotation.DestinationVariable;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -42,7 +43,7 @@ public class DMController {
   }
 
   @MessageMapping("/room/{dmRoomNum}")
-  public ResponseEntity<?> sendDM(@AuthenticationPrincipal String id, @PathVariable Long dmRoomNum,
+  public ResponseEntity<?> sendDM(@AuthenticationPrincipal String id, @DestinationVariable @PathVariable Long dmRoomNum,
                                   @RequestPart(value = "request") SendDMRequestDto request,
                                   @RequestPart(value = "image", required = false) MultipartFile image) {
     return ResponseEntity.ok(dmService.sendDM(id, dmRoomNum, request, image));
