@@ -1,5 +1,6 @@
 package com.example.demo.service;
 
+import com.example.demo.common.KafkaProducerComponent;
 import com.example.demo.common.S3Component;
 import com.example.demo.constants.ContentType;
 import com.example.demo.constants.FollowState;
@@ -7,6 +8,7 @@ import com.example.demo.entity.Account;
 import com.example.demo.entity.Comment;
 import com.example.demo.entity.CommentDocument;
 import com.example.demo.entity.Follow;
+import com.example.demo.entity.Notification;
 import com.example.demo.entity.Post;
 import com.example.demo.entity.PostDocument;
 import com.example.demo.entity.Tag;
@@ -27,6 +29,7 @@ import com.example.demo.repository.CommentDocumentRepository;
 import com.example.demo.repository.CommentRepository;
 import com.example.demo.repository.ContentSearchRepository;
 import com.example.demo.repository.FollowRepository;
+import com.example.demo.repository.NotificationRepository;
 import com.example.demo.repository.PostDocumentRepository;
 import com.example.demo.repository.PostRepository;
 import com.example.demo.repository.TagRepository;
@@ -49,8 +52,10 @@ public class FeedService {
   private final CommentDocumentRepository commentDocumentRepository;
   private final ContentSearchRepository contentSearchRepository;
   private final TagRepository tagRepository;
+  private final NotificationRepository notificationRepository;
 
   private final S3Component s3Component;
+  private final KafkaProducerComponent kafkaProducerComponent;
 
   public WriteResponseDto writePost(String id, WriteRequestDto request, MultipartFile image) {
     Account account = accountRepository.findById(id)
@@ -62,7 +67,14 @@ public class FeedService {
         .build();
     postRepository.save(post);
     postDocumentRepository.save(PostDocument.fromPost(post));
-    extractAndSaveAllTags(post);
+    for (Tag tag: extractAndSaveAllTags(post)) {
+      notificationRepository.save(Notification.builder()
+          .account(tag.getTaggedAccount())
+          .contentType(ContentType.POST)
+          .contentId(post.getPostNum())
+          .text(kafkaProducerComponent.sendTagNotification(post, tag.getTaggedAccount().getId()))
+          .build());
+    }
     return WriteResponseDto.fromEntity(post);
   }
 
@@ -130,7 +142,15 @@ public class FeedService {
         .build();
     commentRepository.save(comment);
     commentDocumentRepository.save(CommentDocument.fromComment(comment));
-    extractAndSaveAllTags(comment);
+
+    for (Tag tag: extractAndSaveAllTags(comment)) {
+      notificationRepository.save(Notification.builder()
+          .account(tag.getTaggedAccount())
+          .contentType(ContentType.COMMENT)
+          .contentId(comment.getCommentNum())
+          .text(kafkaProducerComponent.sendTagNotification(comment, tag.getTaggedAccount().getId()))
+          .build());
+    }
     return WriteResponseDto.fromEntity(comment);
   }
 
@@ -249,7 +269,7 @@ public class FeedService {
     return accountList;
   }
 
-  private void extractAndSaveAllTags(Post post) {
+  private List<Tag> extractAndSaveAllTags(Post post) {
     List<Tag> tags = new ArrayList<>();
     for(String tag: TagUtil.getIds(post.getText())) {
       Account taggedAccount = accountRepository.findById(tag)
@@ -260,10 +280,10 @@ public class FeedService {
           .contentNum(post.getPostNum())
           .build());
     }
-    tagRepository.saveAll(tags);
+    return tagRepository.saveAll(tags);
   }
 
-  private void extractAndSaveAllTags(Comment comment) {
+  private List<Tag> extractAndSaveAllTags(Comment comment) {
     List<Tag> tags = new ArrayList<>();
     tagOriginalPostWriter(tags, comment);
 
@@ -277,7 +297,7 @@ public class FeedService {
           .contentNum(comment.getCommentNum())
           .build());
     }
-    tagRepository.saveAll(tags);
+    return tagRepository.saveAll(tags);
   }
 
   private void tagOriginalPostWriter(List<Tag> tags, Comment comment) {
