@@ -12,4 +12,5 @@ public interface AccountRepository extends JpaRepository<Account, Long> {
   boolean existsById(String id);
   Optional<Account> findById(String id);
   List<Account> findByIdStartingWith(String keyword);
+  List<Account> findAllByIdIn(List<String> id);
 }
