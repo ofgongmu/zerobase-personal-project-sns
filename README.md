@@ -64,8 +64,6 @@
 ## ERD
 ![sns.png](doc%2Fsns.png)
 
-## 트러블 슈팅
-트러블 슈팅 내역은 [이 블로그](velog.io/@ofgongmu)에 작성합니다. 
 
 ## 기술 스택
 ![Java](https://img.shields.io/badge/java-%23ED8B00.svg?style=for-the-badge&logo=openjdk&logoColor=white)
